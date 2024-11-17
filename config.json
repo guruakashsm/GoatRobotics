@@ -1,0 +1,14 @@
+{
+    "Host": "localhost",
+    "Port": 8080,
+    "AppCode": "GOATROBOTICS",
+    "Version": "v1.0.1",
+    "Logging": {
+        "level": "Info",
+        "file": "./logs/GOATROBOTICS.log",
+        "storeLogs":true
+    },
+    "BaseURL": "/rpc/GOATROBOTICS",
+    "MaxMessage":1000,
+    "AuditFilePath":"./logs/Audit.audit"
+}

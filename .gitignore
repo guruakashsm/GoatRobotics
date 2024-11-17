@@ -1,0 +1,4 @@
+#git ignore files here listed
+go.sum
+fednow
+go.mod

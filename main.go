@@ -9,15 +9,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/GURUAKASHSM/ChatApp/constants"
-	"github.com/GURUAKASHSM/ChatApp/handlers"
-	"github.com/GURUAKASHSM/ChatApp/utils"
 	"github.com/common-nighthawk/go-figure"
+	"github.com/guruakashsm/GoatRobotics/constants"
+	"github.com/guruakashsm/GoatRobotics/handlers"
+	"github.com/guruakashsm/GoatRobotics/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
-
 
 func init() {
 	figure.NewFigure("GOAT ROBOTICS", "", true).Print()
@@ -74,10 +73,10 @@ func LoadServerConfiguration() string {
 
 // Listen & Serve and GraceFul ShutDown
 func ListenAndServe(configuration string) {
-	
+
 	server := &http.Server{
-		Addr:    configuration,      
-		Handler: http.DefaultServeMux, 
+		Addr:    configuration,
+		Handler: http.DefaultServeMux,
 	}
 
 	signalChan := make(chan os.Signal, 1)

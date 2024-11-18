@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GURUAKASHSM/ChatApp/constants"
+	"github.com/guruakashsm/GoatRobotics/constants"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/rand"
@@ -70,7 +70,7 @@ func GenerateRequestID() string {
 	return fmt.Sprintf("%s%s%s%s", viper.GetString("Appcode"), datePart, timePart, randomID)
 }
 
-func GetServerVersion()string{
+func GetServerVersion() string {
 	version := viper.GetString("Version")
 	if version == "" {
 		return constants.Version
@@ -78,10 +78,9 @@ func GetServerVersion()string{
 	return version
 }
 
-
-func GetMaxMessage()int{
+func GetMaxMessage() int {
 	maxMessage := viper.GetInt("MaxMessage")
-	if maxMessage == 0{
+	if maxMessage == 0 {
 		return constants.MaxMessage
 	}
 	return maxMessage

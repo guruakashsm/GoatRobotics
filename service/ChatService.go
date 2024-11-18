@@ -6,15 +6,16 @@ import (
 	"strings"
 	"sync"
 	"time"
-    gError "github.com/GURUAKASHSM/ChatApp/errors"
-	"github.com/GURUAKASHSM/ChatApp/models"
-	"github.com/GURUAKASHSM/ChatApp/utils"
+
+	gError "github.com/guruakashsm/GoatRobotics/errors"
+	"github.com/guruakashsm/GoatRobotics/models"
+	"github.com/guruakashsm/GoatRobotics/utils"
 	"github.com/rs/zerolog/log"
 )
 
 // ChatRoom represents the central chat room
 type ChatRoom struct {
-	Clients    map[string]struct {
+	Clients map[string]struct {
 		Messages []models.Message // All messages received by the client (read and unread)
 		Ch       chan models.Message
 	}
@@ -27,7 +28,10 @@ type ChatRoom struct {
 // NewChatRoom creates a new chat room
 func NewChatRoom() *ChatRoom {
 	return &ChatRoom{
-		Clients:    make(map[string]struct{ Messages []models.Message; Ch chan models.Message }),
+		Clients: make(map[string]struct {
+			Messages []models.Message
+			Ch       chan models.Message
+		}),
 		Broadcast:  make(chan models.Message),
 		Register:   make(chan string),
 		Unregister: make(chan string),
@@ -41,7 +45,7 @@ func (c *ChatRoom) Run() {
 		case id := <-c.Register:
 			c.Mu.Lock()
 			c.Clients[id] = models.Clients{
-				Messages: []models.Message{}, 
+				Messages: []models.Message{},
 				Ch:       make(chan models.Message, utils.GetMaxMessage()),
 			}
 			c.Mu.Unlock()
@@ -71,12 +75,10 @@ func (c *ChatRoom) Run() {
 	}
 }
 
-
-
 // Ping to Check the Server Status
 func Ping(w http.ResponseWriter, r *http.Request) {
-    response := &models.PingResponse{
-		Message: "Pinged Successfully",
+	response := &models.PingResponse{
+		Message:      "Pinged Successfully",
 		ResponseTime: time.Now(),
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -85,10 +87,10 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 
 // To Cheack Server Version Currently Running
 func ServerVersion(w http.ResponseWriter, r *http.Request) {
-     var serverVersionRes = models.ServerVersion{
-     	Version:      utils.GetServerVersion(),
-     	ResponseTime: time.Now(),
-     }
+	var serverVersionRes = models.ServerVersion{
+		Version:      utils.GetServerVersion(),
+		ResponseTime: time.Now(),
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(serverVersionRes)
 }
@@ -101,11 +103,11 @@ func (c *ChatRoom) JoinClient(w http.ResponseWriter, r *http.Request) {
 	if id == "" {
 		log.Logger.Err(gError.ID_REQUIRED.Error())
 		w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
+		json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
 		return
 	}
 
-	log.Logger.Info().Msgf("User Joined to Chat Romm with ID : %v",id)
+	log.Logger.Info().Msgf("User Joined to Chat Romm with ID : %v", id)
 
 	c.Register <- id
 
@@ -114,7 +116,7 @@ func (c *ChatRoom) JoinClient(w http.ResponseWriter, r *http.Request) {
 		Message:      "Joined Chat Successfully",
 		ResponseTime: time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -127,18 +129,18 @@ func (c *ChatRoom) LeaveClient(w http.ResponseWriter, r *http.Request) {
 	if id == "" {
 		log.Logger.Err(gError.ID_REQUIRED.Error())
 		w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
+		json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
 		return
 	}
 
 	c.Unregister <- id
 	response := models.LeaveClientResponse{
 		ID:           id,
-		Message:     "Left Chat Successfully",
+		Message:      "Left Chat Successfully",
 		ResponseTime: time.Now(),
 	}
 
-	log.Logger.Info().Msgf("User Left Chat Romm with ID : %v",id)
+	log.Logger.Info().Msgf("User Left Chat Romm with ID : %v", id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -148,10 +150,10 @@ func (c *ChatRoom) SendMessage(w http.ResponseWriter, r *http.Request) {
 	log.Logger.Info().Msg("********** SEND MESSAGE **********")
 
 	id := strings.TrimSpace(r.URL.Query().Get("id"))
-	if id == ""  {
+	if id == "" {
 		log.Logger.Err(gError.ID_REQUIRED.Error())
 		w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
+		json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
 		return
 	}
 
@@ -159,11 +161,11 @@ func (c *ChatRoom) SendMessage(w http.ResponseWriter, r *http.Request) {
 	if message == "" {
 		log.Logger.Err(gError.MESSAGE_REQUIRED.Error())
 		w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(gError.MESSAGE_REQUIRED.Error())
+		json.NewEncoder(w).Encode(gError.MESSAGE_REQUIRED.Error())
 		return
 	}
 
-	log.Logger.Info().Msgf("User with ID : %v Sends Message : %v to the Chat Room",id,message)
+	log.Logger.Info().Msgf("User with ID : %v Sends Message : %v to the Chat Room", id, message)
 
 	c.Mu.RLock()
 	_, exists := c.Clients[id]
@@ -171,10 +173,10 @@ func (c *ChatRoom) SendMessage(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		log.Logger.Err(gError.USER_NOT_FOUND.Error())
 		w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(gError.USER_NOT_FOUND.Error())
+		json.NewEncoder(w).Encode(gError.USER_NOT_FOUND.Error())
 		return
 	}
-	
+
 	c.Broadcast <- models.Message{UserID: id, Message: message, Time: time.Now()}
 	response := models.SendMessageResponse{
 		ID:           id,
@@ -192,7 +194,7 @@ func (c *ChatRoom) GetMessages(w http.ResponseWriter, r *http.Request) {
 	if id == "" {
 		log.Logger.Err(gError.ID_REQUIRED.Error())
 		w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
+		json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
 		return
 	}
 
@@ -202,13 +204,13 @@ func (c *ChatRoom) GetMessages(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		log.Logger.Err(gError.USER_NOT_FOUND.Error())
 		w.Header().Set("Content-Type", "application/json")
-	    json.NewEncoder(w).Encode(gError.USER_NOT_FOUND.Error())
+		json.NewEncoder(w).Encode(gError.USER_NOT_FOUND.Error())
 		return
 	}
 
-	log.Logger.Info().Msgf("User with ID : %v aked to Get all Messages",id)
+	log.Logger.Info().Msgf("User with ID : %v aked to Get all Messages", id)
 	response := models.GetMessagesResponse{
-		Messages:      client.Messages,
+		Messages:     client.Messages,
 		ResponseTime: time.Now(),
 		ID:           id,
 	}
@@ -216,13 +218,13 @@ func (c *ChatRoom) GetMessages(w http.ResponseWriter, r *http.Request) {
 	if len(client.Messages) == 0 {
 		response.Message = "No messages"
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-	
+
 	c.Mu.Lock()
 	for i := range client.Messages {
-		client.Messages[i].Read = true 
+		client.Messages[i].Read = true
 	}
 	c.Clients[id] = client
 	c.Mu.Unlock()

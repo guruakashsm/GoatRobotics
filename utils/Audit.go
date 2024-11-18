@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GURUAKASHSM/ChatApp/models"
+	"github.com/guruakashsm/GoatRobotics/models"
 	"github.com/rs/zerolog/log"
 )
 

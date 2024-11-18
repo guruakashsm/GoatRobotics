@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/GURUAKASHSM/ChatApp/models"
-	"github.com/GURUAKASHSM/ChatApp/service"
-	"github.com/GURUAKASHSM/ChatApp/utils"
+	"github.com/guruakashsm/GoatRobotics/models"
+	"github.com/guruakashsm/GoatRobotics/service"
+	"github.com/guruakashsm/GoatRobotics/utils"
 	"github.com/rs/zerolog/log"
 )
 

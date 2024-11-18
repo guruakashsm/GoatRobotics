@@ -20,16 +20,22 @@ func Handle() {
 	chatRoom := service.NewChatRoom()
 	go chatRoom.Run()
 
+	// Backend Rest API	
 	http.Handle((baseUrl + "/join"), Middleware(http.HandlerFunc(chatRoom.JoinClient)))
 	http.Handle((baseUrl + "/leave"), Middleware(http.HandlerFunc(chatRoom.LeaveClient)))
 	http.Handle((baseUrl + "/send"), Middleware(http.HandlerFunc(chatRoom.SendMessage)))
 	http.Handle((baseUrl + "/messages"), Middleware(http.HandlerFunc(chatRoom.GetMessages)))
 	http.Handle("/ping", Middleware(http.HandlerFunc(service.Ping)))
 	http.Handle("/version", Middleware(http.HandlerFunc(service.ServerVersion)))
+
+	// UI Rendering 
 	http.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request) {
 		htmlPath := filepath.Join("UI", "index.html")
 		http.ServeFile(w, r, htmlPath)
 	})
+	fs := http.FileServer(http.Dir("UI"))
+	http.Handle("/UI/", http.StripPrefix("/UI/", fs))
+
 
 	log.Logger.Info().Msg("Routes Initialized Successfully")
 

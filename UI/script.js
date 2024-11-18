@@ -1,5 +1,7 @@
 const URL = 'http://localhost:8080/rpc/GOATROBOTICS';
 
+let intervalId = ""
+
 function HideAll() {
     document.getElementById("login").style.display = 'none'
     document.getElementById("chat").style.display = 'none'
@@ -8,7 +10,7 @@ function HideAll() {
 function OpenChat() {
     document.getElementById("chat").style.display = 'block'
     GetMessages()
-    setInterval(GetMessages, 600)
+    intervalId = setInterval(GetMessages, 600)
 }
 
 function Login(event) {
@@ -42,16 +44,16 @@ function Login(event) {
 document.getElementById("loginForm").addEventListener("submit", Login);
 
 function SendMessage(event) {
-    event.preventDefault(); 
+    event.preventDefault();
 
     let messsage = document.getElementById("messge").value; // Corrected typo: changed "messsage" to "messge"
     messsage = messsage.trim();
 
     let userId = localStorage.getItem("userId");
-    if (!userId) { 
+    if (!userId) {
         console.log("User ID is Empty So Logging Out");
         Logout();
-        return;     
+        return;
     }
 
     let apiUrl = URL + `/send?id=${userId}&message=${messsage}`;
@@ -80,15 +82,17 @@ document.getElementById("messageForm").addEventListener("submit", SendMessage);
 function Logout() {
     HideAll();
     document.getElementById("login").style.display = 'block';
+    localStorage.removeItem("userId")
+    stopInterval()
 }
 
-function GetMessages(){
+function GetMessages() {
 
     let userId = localStorage.getItem("userId");
-    if (!userId) { 
+    if (!userId) {
         console.log("User ID is Empty So Logging Out");
         Logout();
-        return;     
+        return;
     }
 
     let apiUrl = URL + `/messages?id=${userId}`;
@@ -108,7 +112,7 @@ function GetMessages(){
                 let html = ""
                 data.messages.forEach(message => {
 
-                    if(!message.read && !addedRead && userId != message.userId){
+                    if (!message.read && !addedRead && userId != message.userId) {
                         addedRead = true
                         html += `
                                     <div style="display: flex;justify-content: center;padding: 10px;">
@@ -120,9 +124,9 @@ function GetMessages(){
 
                     }
 
-                    if(message.userId == userId){
+                    if (message.userId == userId) {
                         html += ` <div class="msg right-msg">
-                                    <div class="msg-img" style="background-image: url('./assets/profile.png')">
+                                    <div class="msg-img" style="background-image: url('./UI/assets/profile.png')">
                                     </div>
 
                                     <div class="msg-bubble">
@@ -137,10 +141,10 @@ function GetMessages(){
                                     </div>
                                 </div>     
                         `
-                    }else{
+                    } else {
                         html += `
                                     <div class="msg left-msg">
-                                    <div class="msg-img" style="background-image: url('./assets/profile.png')">
+                                    <div class="msg-img" style="background-image: url('./UI/assets/profile.png')">
                                     </div>
 
                                     <div class="msg-bubble">
@@ -156,29 +160,36 @@ function GetMessages(){
                                 </div>
                                `
                     }
-                    
+
                 });
                 document.getElementById("chatMessages").innerHTML = html
             }
-        
+
         })
         .catch(error => {
             console.error('Error:', error);
-        });   
+        });
 }
-document.getElementById("refresh").addEventListener("submit",GetMessages)
+document.getElementById("refresh").addEventListener("submit", GetMessages)
 
 
 
 function formatDateTime(inputDateTime) {
     const date = new Date(inputDateTime);
     const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0'); 
+    const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     let hours = date.getHours();
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12;
-    hours = hours ? String(hours).padStart(2, '0') : '12'; 
+    hours = hours ? String(hours).padStart(2, '0') : '12';
     return `${day}.${month}.${year} ${hours}:${minutes} ${ampm}`;
 }
+
+function stopInterval() {
+    clearInterval(intervalId);
+    console.log("Interval stopped.");
+}
+
+stopInterval()

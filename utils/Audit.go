@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -36,7 +38,25 @@ func Audit(r *http.Request, requestBody string, response *models.CustomResponseW
 		ResponseSize:     int64(response.Body.Len()),
 	}
 
-	log.Logger.Println(audit)
+	auditData, err := json.MarshalIndent(audit, "", "  ")
+	if err != nil {
+		log.Logger.Error().Err(err).Msg("Failed to marshal audit data")
+		return
+	}
 
-	log.Logger.Info().Msg("Audit data successfully written to file.")
+	file, err := os.OpenFile(GetAuditFilePath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Logger.Error().Err(err).Msg("Failed to open audit file")
+		return
+	}
+	defer file.Close()
+
+	
+	_, err = file.WriteString(string(auditData) + "\n")
+	if err != nil {
+		log.Logger.Error().Err(err).Msg("Failed to write audit data to file")
+		return
+	}
+
+	log.Logger.Info().Msg("Audit data successfully written to audit.log file.")
 }

@@ -10,7 +10,7 @@ function HideAll() {
 function OpenChat() {
     document.getElementById("chat").style.display = 'block'
     GetMessages()
-    intervalId = setInterval(GetMessages, 600)
+    intervalId = setInterval(GetMessages, 900)
 }
 
 function Login(event) {
@@ -78,13 +78,45 @@ function SendMessage(event) {
 }
 
 document.getElementById("messageForm").addEventListener("submit", SendMessage);
-
 function Logout() {
-    HideAll();
-    document.getElementById("login").style.display = 'block';
-    localStorage.removeItem("userId")
-    stopInterval()
+    console.log("Log OUT Called ----------------->");
+    
+    let userId = localStorage.getItem("userId");
+    if (!userId) {
+        console.log("User ID is Empty So Logging Out");
+        HideAll();
+        document.getElementById("login").style.display = 'block';
+        localStorage.removeItem("userId");
+        stopInterval();
+        return;
+    }
+
+    let apiUrl = URL + `/leave?id=${userId}`;
+
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            if (!data.Error) {
+                HideAll();
+                document.getElementById("login").style.display = 'block';
+                localStorage.removeItem("userId");
+                stopInterval();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
 }
+
+// Use 'click' event instead of 'submit'
+document.getElementById("logout").addEventListener("click", Logout);
+
 
 function GetMessages() {
 
@@ -96,7 +128,6 @@ function GetMessages() {
     }
 
     let apiUrl = URL + `/messages?id=${userId}`;
-    let addedRead = false
 
     fetch(apiUrl)
         .then(response => {
@@ -111,19 +142,6 @@ function GetMessages() {
                 document.getElementById("chatMessages").innerHTML = ""
                 let html = ""
                 data.messages.forEach(message => {
-
-                    if (!message.read && !addedRead && userId != message.userId) {
-                        addedRead = true
-                        html += `
-                                    <div style="display: flex;justify-content: center;padding: 10px;">
-                                        <div id="unreadMessage" class="unread-message">
-                                            Unread Message
-                                        </div>
-                                    </div>
-                                `
-
-                    }
-
                     if (message.userId == userId) {
                         html += ` <div class="msg right-msg">
                                     <div class="msg-img" style="background-image: url('./UI/assets/profile.png')">

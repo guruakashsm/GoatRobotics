@@ -21,6 +21,6 @@ var (
 	INTERNAL_ERROR   = &Error{Code: "INTERNAL_ERROR", Message: "Internal Server Error"}
 	ID_REQUIRED      = &Error{Code: "ID_REQUIRED", Message: "ID is Required"}
 	MESSAGE_REQUIRED = &Error{Code: "MESSAGE_REQUIRED", Message: "Message is Required"}
-	USER_NOT_FOUND = &Error{Code: "USER_NOT_FOUND", Message: "User not Found"}
-
+	USER_NOT_FOUND   = &Error{Code: "USER_NOT_FOUND", Message: "User not Found"}
+	NO_MESSAGE_FOUND = &Error{Code: "NO_MESSAGE_FOUND", Message: "No Message Found"}
 )

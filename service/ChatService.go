@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -15,68 +16,56 @@ import (
 
 // ChatRoom represents the central chat room
 type ChatRoom struct {
-	Clients map[string]struct {
-		Messages []models.Message // All messages received by the client (read and unread)
-		Ch       chan models.Message
-	}
-	Mu         sync.RWMutex
-	Broadcast  chan models.Message
-	Register   chan string
-	Unregister chan string
+    Broadcast  chan models.Message
+    Register   chan string
+    Unregister chan string
+    Mu         sync.RWMutex
+    Clients    map[string]bool 
+    Messages   []*models.Message
+    msgMu      sync.Mutex 
 }
 
 // NewChatRoom creates a new chat room
 func NewChatRoom() *ChatRoom {
-	return &ChatRoom{
-		Clients: make(map[string]struct {
-			Messages []models.Message
-			Ch       chan models.Message
-		}),
-		Broadcast:  make(chan models.Message),
-		Register:   make(chan string),
-		Unregister: make(chan string),
-	}
+    return &ChatRoom{
+        Broadcast:  make(chan models.Message, 100), 
+        Register:   make(chan string),
+        Unregister: make(chan string),
+        Clients:    make(map[string]bool),
+        Messages:   make([]*models.Message, 0), 
+    }
 }
 
 // Run starts the chat room's main loop
 func (c *ChatRoom) Run() {
-	for {
-		select {
-		case id := <-c.Register:
-			c.Mu.Lock()
-			c.Clients[id] = models.Clients{
-				Messages: []models.Message{},
-				Ch:       make(chan models.Message, utils.GetMaxMessage()),
-			}
-			c.Mu.Unlock()
+    for {
+        select {
+        case id := <-c.Register:
+            log.Logger.Info().Msgf("Registering client with ID: %v", id) // Log when a client is registered
+            c.Mu.Lock()
+            c.Clients[id] = true // Register the client
+            c.Mu.Unlock()
 
-		case id := <-c.Unregister:
-			c.Mu.Lock()
-			if _, exists := c.Clients[id]; exists {
-				close(c.Clients[id].Ch)
-				delete(c.Clients, id)
-			}
-			c.Mu.Unlock()
+        case id := <-c.Unregister:
+            log.Logger.Info().Msgf("Unregistering client with ID: %v", id) // Log when a client is unregistered
+            c.Mu.Lock()
+            if exists := c.Clients[id]; exists {
+                delete(c.Clients, id) // Unregister the client
+            }
+            c.Mu.Unlock()
 
-		case message := <-c.Broadcast:
-			c.Mu.RLock()
-			for id, client := range c.Clients {
-				client.Messages = append(client.Messages, models.Message{
-					UserID:  message.UserID,
-					Message: message.Message,
-					Time:    message.Time,
-					Read:    false,
-				})
-				client.Ch <- message
-				c.Clients[id] = client
-			}
-			c.Mu.RUnlock()
-		}
-	}
+        case message := <-c.Broadcast:
+            log.Logger.Info().Msgf("Broadcasting message: %v", message) // Log the broadcasted message
+            c.msgMu.Lock()
+            c.Messages = append(c.Messages, &message)
+            c.msgMu.Unlock()
+        }
+    }
 }
 
 // Ping to Check the Server Status
 func Ping(w http.ResponseWriter, r *http.Request) {
+	log.Logger.Info().Msg("Received ping request") // Log when the ping request is received
 	response := &models.PingResponse{
 		Message:      "Pinged Successfully",
 		ResponseTime: time.Now(),
@@ -85,8 +74,9 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// To Cheack Server Version Currently Running
+// To Check Server Version Currently Running
 func ServerVersion(w http.ResponseWriter, r *http.Request) {
+	log.Logger.Info().Msg("Received request for server version") // Log when the server version request is received
 	var serverVersionRes = models.ServerVersion{
 		Version:      utils.GetServerVersion(),
 		ResponseTime: time.Now(),
@@ -101,13 +91,13 @@ func (c *ChatRoom) JoinClient(w http.ResponseWriter, r *http.Request) {
 
 	id := strings.TrimSpace(r.URL.Query().Get("id"))
 	if id == "" {
-		log.Logger.Err(gError.ID_REQUIRED.Error())
+		log.Logger.Err(gError.ID_REQUIRED.Error()) // Log error if ID is missing
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
 		return
 	}
 
-	log.Logger.Info().Msgf("User Joined to Chat Romm with ID : %v", id)
+	log.Logger.Info().Msgf("User Joined to Chat Room with ID: %v", id) // Log the user's join event
 
 	c.Register <- id
 
@@ -127,11 +117,13 @@ func (c *ChatRoom) LeaveClient(w http.ResponseWriter, r *http.Request) {
 
 	id := strings.TrimSpace(r.URL.Query().Get("id"))
 	if id == "" {
-		log.Logger.Err(gError.ID_REQUIRED.Error())
+		log.Logger.Err(gError.ID_REQUIRED.Error()) // Log error if ID is missing
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
 		return
 	}
+
+	log.Logger.Info().Msgf("User Left Chat Room with ID: %v", id) // Log the user's leave event
 
 	c.Unregister <- id
 	response := models.LeaveClientResponse{
@@ -140,47 +132,34 @@ func (c *ChatRoom) LeaveClient(w http.ResponseWriter, r *http.Request) {
 		ResponseTime: time.Now(),
 	}
 
-	log.Logger.Info().Msgf("User Left Chat Romm with ID : %v", id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
 // SendMessage broadcasts a message from a client
 func (c *ChatRoom) SendMessage(w http.ResponseWriter, r *http.Request) {
-	log.Logger.Info().Msg("********** SEND MESSAGE **********")
-
 	id := strings.TrimSpace(r.URL.Query().Get("id"))
 	if id == "" {
-		log.Logger.Err(gError.ID_REQUIRED.Error())
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
+		log.Logger.Err(gError.ID_REQUIRED.Error()) // Log error if ID is missing
+		http.Error(w, gError.ID_REQUIRED.Code, http.StatusBadRequest)
 		return
 	}
 
 	message := strings.TrimSpace(r.URL.Query().Get("message"))
 	if message == "" {
-		log.Logger.Err(gError.MESSAGE_REQUIRED.Error())
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(gError.MESSAGE_REQUIRED.Error())
+		log.Logger.Err(gError.MESSAGE_REQUIRED.Error()) // Log error if message is missing
+		http.Error(w, gError.MESSAGE_REQUIRED.Code, http.StatusBadRequest)
 		return
 	}
 
-	log.Logger.Info().Msgf("User with ID : %v Sends Message : %v to the Chat Room", id, message)
+	log.Logger.Info().Msgf("User with ID: %v sent message: %v", id, message) // Log the sent message
 
-	c.Mu.RLock()
-	_, exists := c.Clients[id]
-	c.Mu.RUnlock()
-	if !exists {
-		log.Logger.Err(gError.USER_NOT_FOUND.Error())
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(gError.USER_NOT_FOUND.Error())
-		return
-	}
-
+	// Send message to Broadcast channel
 	c.Broadcast <- models.Message{UserID: id, Message: message, Time: time.Now()}
+
 	response := models.SendMessageResponse{
 		ID:           id,
-		Message:      message,
+		Message:      "Message Sent Successfully",
 		ResponseTime: time.Now(),
 	}
 
@@ -188,44 +167,56 @@ func (c *ChatRoom) SendMessage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetMessages retrieves all messages for a client (both read and unread) and marks them as read.
+// GetMessages retrieves all messages for a client.
 func (c *ChatRoom) GetMessages(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.URL.Query().Get("id"))
 	if id == "" {
-		log.Logger.Err(gError.ID_REQUIRED.Error())
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(gError.ID_REQUIRED.Error())
+		log.Logger.Err(gError.ID_REQUIRED.Error()) // Log error if ID is missing
+		http.Error(w, gError.ID_REQUIRED.Code, http.StatusBadRequest)
 		return
 	}
 
-	c.Mu.Lock()
-	client, exists := c.Clients[id]
-	c.Mu.Unlock()
+	c.Mu.RLock()
+	_, exists := c.Clients[id]
+	c.Mu.RUnlock()
 	if !exists {
-		log.Logger.Err(gError.USER_NOT_FOUND.Error())
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(gError.USER_NOT_FOUND.Error())
+		log.Logger.Err(gError.ID_REQUIRED.Error()).Msgf("User not found: %v", id) // Log error if the user is not found
+		http.Error(w, gError.USER_NOT_FOUND.Code, http.StatusNotFound)
 		return
 	}
 
-	log.Logger.Info().Msgf("User with ID : %v aked to Get all Messages", id)
-	response := models.GetMessagesResponse{
-		Messages:     client.Messages,
-		ResponseTime: time.Now(),
-		ID:           id,
-	}
+	log.Logger.Info().Msgf("Retrieving messages for client ID: %v", id) // Log message retrieval request
 
-	if len(client.Messages) == 0 {
-		response.Message = "No messages"
-	}
+	c.Mu.RLock()
+	messages := append([]*models.Message{}, c.Messages...) // Create a copy of messages to avoid race conditions
+	c.Mu.RUnlock()
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	timeout := 3 * time.Second
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+	defer cancel()
 
-	c.Mu.Lock()
-	for i := range client.Messages {
-		client.Messages[i].Read = true
+	responseChan := make(chan models.GetMessagesResponse)
+	go func() {
+		response := models.GetMessagesResponse{
+			ID:           id,
+			Messages:     messages,
+			ResponseTime: time.Now(),
+		}
+		if len(messages) == 0 {
+			response.Message = "No new messages"
+		}
+		responseChan <- response
+	}()
+
+	select {
+	case response := <-responseChan:
+		log.Logger.Info().Msgf("Sending messages response for client ID: %v", id) // Log message response sent
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	case <-ctx.Done():
+		log.Logger.Err(gError.NO_MESSAGE_FOUND.Error()).Msgf("Request timed out while retrieving messages for client ID: %v", id) // Log timeout error
+		http.Error(w, "Request timed out", http.StatusGatewayTimeout)
+		return
 	}
-	c.Clients[id] = client
-	c.Mu.Unlock()
 }

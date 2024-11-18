@@ -32,3 +32,9 @@ const (
 const (
 	MaxMessage = 100
 )
+
+
+// Audit Configuration
+const (
+	AuditFilePath = "./logs/Audit.audit"
+)

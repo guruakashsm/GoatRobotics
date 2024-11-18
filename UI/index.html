@@ -20,7 +20,8 @@
                 style="width: 500px; height:250px;padding: 50px; background-color: white; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); border-radius: 8px;margin: 10px;">
                 <form id="loginForm"
                     style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <label class="labeid" style="font-size: 25px; margin-bottom: 10px; color: #333;">GOAT ROBOTICS</label>
+                    <label class="labeid" style="font-size: 25px; margin-bottom: 10px; color: #333;">GOAT
+                        ROBOTICS</label>
                     <input class="idinput" id="userid" type="text" placeholder="User ID"
                         style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
                     <button type="submit" class="submitbutton"
@@ -36,15 +37,34 @@
         <header class="msger-header">
             <div class="msger-header-title">
                 <i class="fas fa-comment-alt"></i> GOAT ROBOTICS CHAT
-                
+
             </div>
             <div class="msger-header-options">
                 <span id="refresh"><i class="fa fa-refresh" aria-hidden="true"></i></span>
+                <span>
+                    <button type="button" id="logout" style="
+                            background-color: #4CAF50; /* Green background */
+                            color: white; /* White text */
+                            border: none; /* No border */
+                            padding: 10px 20px; /* Padding */
+                            text-align: center; /* Center the text */
+                            text-decoration: none; /* No underline */
+                            display: inline-block; /* Inline block for better layout control */
+                            font-size: 16px; /* Font size */
+                            border-radius: 5px; /* Rounded corners */
+                            cursor: pointer; /* Pointer cursor on hover */
+                            transition: background-color 0.3s, transform 0.2s; /* Smooth transitions */
+                        " onmouseover="this.style.backgroundColor='#45a049'; this.style.transform='scale(1.05)';"
+                        onmouseout="this.style.backgroundColor='#4CAF50'; this.style.transform='scale(1)';">
+                        Logout
+                    </button>
+                </span>
+
             </div>
         </header>
 
         <main class="msger-chat" id="chatMessages">
-                            
+
         </main>
 
         <form class="msger-inputarea" id="messageForm">

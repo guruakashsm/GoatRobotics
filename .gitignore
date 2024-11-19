@@ -1,1 +1,8 @@
 #git ignore files here listed
+
+./go.mod
+./go.sum
+
+./GoatRobotics
+./GoatRobotics.exe
+./Golang Task.pdf
